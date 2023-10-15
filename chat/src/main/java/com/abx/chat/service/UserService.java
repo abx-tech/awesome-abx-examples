@@ -22,7 +22,6 @@
 
 package com.abx.chat.service;
 
-import com.abx.chat.dto.UserDTO;
 import com.abx.chat.model.User;
 import com.abx.chat.repositories.UserRepository;
 import java.util.List;

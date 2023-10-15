@@ -1,3 +1,25 @@
+/*
+ * Copyright  (c) 2023.  ABX
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package com.abx.chat.service;
 
 import com.abx.chat.model.ChatMessage;
@@ -10,6 +32,12 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
+/**
+ * The type Message service.
+ * <p>
+ *     This class is used to perform CRUD operations on the ChatMessage entity.
+ * </p>
+ */
 @Service
 public class MessageService {
 
@@ -21,6 +49,11 @@ public class MessageService {
         this.dynamoDbClient = dynamoDbClient;
     }
 
+    /**
+     * Save a chat message to dynamoDB.
+     *
+     * @param message the message
+     */
     public void saveMessage(ChatMessage message) {
         HashMap<String, AttributeValue> itemValues = new HashMap<>();
 
@@ -37,12 +70,8 @@ public class MessageService {
         // Timestamp: "2021-09-01T12:00:01"
         // ]
 
-
-
         itemValues.put("UserId", AttributeValue.builder().s(String.valueOf(message.getUserId())).build());
-
         itemValues.put("ThreadId", AttributeValue.builder().s(message.getChatThreadId()).build());
-
         itemValues.put("Content", AttributeValue.builder().s(message.getContent()).build());
         itemValues.put("Timestamp", AttributeValue.builder().s(message.getTimestamp()).build());
 
@@ -62,6 +91,12 @@ public class MessageService {
     }
 
 
+    /**
+     * Get all messages for a given thread.
+     *
+     * @param threadId the thread id
+     * @return the messages for thread
+     */
     public List<ChatMessage> getMessagesForThread(String threadId) {
         HashMap<String, AttributeValue> valueMap = new HashMap<>();
         valueMap.put(":tid", AttributeValue.builder().s(threadId).build());

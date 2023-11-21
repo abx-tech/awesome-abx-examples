@@ -31,8 +31,11 @@ import com.abx.chat.service.MessageService;
 import com.abx.chat.service.UserService;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,18 +54,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api")
 public class ChatAPIController {
+    private static final Logger logger = LoggerFactory.getLogger(ChatAPIController.class);
+
     private final UserService userService;
     private final ChatThreadService chatThreadService;
-
     private final SimpMessagingTemplate template;
     private final MessageService messageService;
 
     /**
-     * Instantiates a new Chat api controller.
-     * @param userService It's used to handle the requests for the user API.
-     * @param chatThreadService It's used to handle the requests for the chat thread API.
-     * @param template It's used to send messages to the clients.
-     * @param messageService It's used to handle the requests for the message API.
+     * Constructor for ChatAPIController.
+     *
+     * @param userService        Service for user-related operations.
+     * @param chatThreadService  Service for chat thread operations.
+     * @param template           Messaging template for sending messages.
+     * @param messageService     Service for message-related operations.
      */
     public ChatAPIController(UserService userService, ChatThreadService chatThreadService,
         SimpMessagingTemplate template, MessageService messageService) {
@@ -72,60 +77,47 @@ public class ChatAPIController {
         this.messageService = messageService;
     }
 
-    @PostMapping("/register")
+    @PostMapping("/users/register")
     public User registerUser(@RequestBody UserDTO userDTO) {
         return userService.createUser(userDTO.toEntity());
     }
 
-    @GetMapping("/user/{userId}")
+    @GetMapping("/users/{userId}/threads")
     public List<ChatThreadDTO> getThreadsForUser(@PathVariable String userId) {
         return chatThreadService.getThreadsForUser(userId);
     }
 
-    @GetMapping("/chat/contacts")
+    @GetMapping("/users/contacts")
     public List<UserDTO> getContacts() {
-        return userService.getAllUser().stream()
-            .map(UserDTO::fromEntity)
-            .collect(Collectors.toList());
+        return userService.getAllUser().stream().map(UserDTO::fromEntity).collect(Collectors.toList());
     }
 
-    @GetMapping("/chat/chats")
+    @GetMapping("/threads")
     public List<ChatThreadDTO> getChats() {
-        return chatThreadService.getAllThreads().stream()
-            .map(ChatThreadDTO::fromEntity)
-            .collect(Collectors.toList());
+        return chatThreadService.getAllThreads().stream().map(ChatThreadDTO::fromEntity).collect(Collectors.toList());
     }
 
-    @PostMapping("/api/threads/{threadId}/messages")
-    public ResponseEntity<ChatMessage> receiveMessage(@PathVariable String threadId, @RequestBody ChatMessage message) {
-        System.out.println("send message to thread" + threadId + " " + message);
-        messageService.saveMessage(message); // Save to DynamoDB
+    @MessageMapping("/threads/{threadId}/messages")
+    public ResponseEntity<ChatMessage> receiveMessage(@DestinationVariable String threadId, @RequestBody ChatMessage message) {
+        log("Received message in thread: " + threadId);
+        messageService.saveMessage(message); // Save to database
         broadcastMessage("/topic/messages/" + threadId, message);
         return ResponseEntity.ok(message);
     }
 
-    /**
-     * Gets messages for thread.
-     *
-     * @param threadId the thread id
-     * @return the messages for thread
-     */
-    @GetMapping("/api/threads/{threadId}/messages")
+    @GetMapping("/threads/{threadId}/messages")
     public ResponseEntity<List<ChatMessage>> getMessagesForThread(@PathVariable String threadId) {
-        System.out.println("get messages for thread" + threadId);
+        log("Fetching messages for thread: " + threadId);
         return ResponseEntity.ok(messageService.getMessagesForThread(threadId));
     }
 
-
-    /**
-        * Broadcast message.
-        *
-        * @param threadId the thread id
-        * @param message the message to broadcast
-    */
-    private void broadcastMessage(@DestinationVariable String threadId, ChatMessage message) {
-        System.out.println("broadcast message to thread" + threadId + " " + message);
-        template.convertAndSend("/topic/messages/" + threadId, message);
+    private void broadcastMessage(String destination, ChatMessage message) {
+        log("Broadcasting message to: " + destination);
+        template.convertAndSend(destination, message);
     }
 
+    private void log(String message) {
+        System.out.println(message);
+        logger.info(message);
+    }
 }

@@ -44,6 +44,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.springframework.boot:spring-boot-starter-log4j2")
     implementation("org.postgresql:postgresql:42.6.0")
 
 
@@ -60,3 +61,10 @@ dependencies {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+configurations {
+    implementation {
+        exclude(group = "org.springframework.boot", module = "spring-boot-starter-logging")
+    }
+}
+

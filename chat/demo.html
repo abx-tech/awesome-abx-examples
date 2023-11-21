@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABX Chat Demo</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <script>
+        let stompClient = null;
+
+        function fetchThreads() {
+            fetch('http://localhost:8080/api/threads')
+            .then(response => response.json())
+            .then(threads => {
+                const threadSelect = document.getElementById('threadSelect');
+                threads.forEach(thread => {
+                    let option = new Option(thread.name, thread.id); // Assuming thread has 'id' and 'name'
+                    threadSelect.add(option);
+                });
+            })
+            .catch(error => console.error('Error fetching threads:', error));
+        }
+
+        function connect(options) {
+            const threadId = document.getElementById('threadSelect').value;
+            if (!threadId) {
+                console.error("Please select a thread to connect.");
+                return;
+            }
+            const socket = new SockJS('http://localhost:8080/abx-chat-ws');
+            stompClient = Stomp.over(socket);
+
+            stompClient.connect({}, function(frame) {
+                console.log('Connected: ' + frame);
+                const topic = `/topic/messages/${threadId}`;
+                stompClient.subscribe(topic, function (message) {
+                    displayMessage(JSON.parse(message.body).content);
+                });
+            });
+        }
+
+        function sendMessage() {
+            const threadId = document.getElementById('threadSelect').value;
+            const messageText = document.getElementById('messageText').value;
+
+            // Create the message object with all required fields
+            const message = {
+                userId: "yourUserId", // Replace with actual user ID
+                chatThreadId: threadId,
+                content: messageText,
+                timestamp: new Date().toISOString() // Use the current time in ISO format
+            };
+
+            // Send the message
+            stompClient.send(`/app/threads/${threadId}/messages`, {}, JSON.stringify(message));
+
+            // Clear input field after sending
+            document.getElementById('messageText').value = '';
+        }
+
+
+        function displayMessage(message) {
+            const messages = document.getElementById('messages');
+            const messageElement = document.createElement('div');
+            messageElement.appendChild(document.createTextNode(message));
+            messages.appendChild(messageElement);
+        }
+
+        window.onload = fetchThreads;
+    </script>
+</head>
+<body>
+<div class="container mt-4">
+    <div class="row mt-2">
+        <div class="col">
+            <label for="threadSelect"></label><select id="threadSelect" class="form-control">
+                <option value="">Select a Thread</option>
+                <!-- Thread options will be populated here -->
+            </select>
+        </div>
+        <div class="col-auto">
+            <button onclick="connect()" class="btn btn-primary">Connect to Thread</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <input type="text" id="messageText" class="form-control" placeholder="Enter your message here...">
+        </div>
+        <div class="col-auto">
+            <button onclick="sendMessage()" class="btn btn-primary">Send Message</button>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col">
+            <div id="messages" style="height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+                <!-- Messages will appear here -->
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

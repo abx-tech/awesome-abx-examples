@@ -54,6 +54,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/abx-chat-websocket");
+        registry.addEndpoint("/abx-chat-ws")
+            .setAllowedOrigins("http://localhost:63344")
+            .withSockJS();
     }
 }
